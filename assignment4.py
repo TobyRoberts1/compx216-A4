@@ -11,14 +11,10 @@ def build_unigram(sequence):
     # Return a unigram model.
     # Replace the line below with your code.
     unigram = {}
-  
-
-    
-
     for token in sequence: 
         unigram[token] = unigram.get(token,0) + 1
-
-    return unigram
+    model = {(): unigram}
+    return model
 
 
 def build_bigram(sequence):
@@ -59,61 +55,89 @@ def query_n_gram(model, sequence):
     # Return a prediction as a dictionary.
     # Replace the line below with your code.
     #if sequence empty, goes unigram
-    if len(sequence) == 0:
+    for token in model: 
+        len_token = len(token)
+        break
+    if len_token == 0:  
         return model.get(())
-    #n-gram model (n >= 2), return dictionary if it exists
-    return model.get(sequence, None)
+    elif len_token >= 1:
+        if sequence in model: 
+            return model[sequence]
+    return None
+
 
 def blend_predictions(preds, factor=0.8):
     # Task 3
     # Return a blended prediction as a dictionary.
     # Replace the line below with your code.
+
+    from collections import Counter
+
     #remove NONE values from preds
     preds = [p for p in preds if p is not None]
 
     #normilize each pred to sum to 1 
     norm_preds = []
     for pred in preds: 
-        total = sum( pred.values())
+        factor = 1.0/sum( pred.values())
+        for k in pred:
+            pred[k] = pred[k]*factor 
+
         #if total is larger then 1 normilze 
-        if total > 0:
-            #normilize through dict comprehension
-            norm_pred =  {k: v / total for k, v in pred.items()}
-            norm_preds.append(norm_pred)
+        
     #Blend according to the factor 
     #init blended and weights 
     blended = {}
-    weight = factor 
-    remaning_weight = 1.0
+    col_list = []
 
-    #loop through normpred
-    for norm_pred in norm_preds:
-        #add weighted prob to blended
-        for token,prob in norm_pred.items():
-            #init token if doesn't exist 
-            if token not in blended:
-                blended[token] = 0
-            #add weighted prob to blended 
-            blended[token] += prob * weight
-        #update weights 
-        remaning_weight -= weight 
-        #set weight for next pred
-        weight *= remaning_weight
 
-    #norm blended to ensure prob sums to 1 
-    total_blended = sum(blended.values())
-    if total_blended > 0:
-            #normilize through dict comprehension
-            norm_blended =  {k: v / total_blended for k, v in blended.items()}
+    #loop through each pred and calc weight
+    for i in range(len(preds)):
+        if i == 0: 
+            weight = 0.8
+        else: 
+            weight = math.pow((1.0 - 0.8),(i))
+        
+        for token in preds[i]:
+            preds[i][token] *= weight 
 
-    return norm_blended
+
+    # add to the list 
+    for i in range(len(preds)):
+        col_list.append(Counter(preds[i]))
+    blended = dict(sum(col_list, Counter()))
+    return blended
+
 
 
 def predict(sequence, models):
     # Task 4
     # Return a token sampled from blended predictions.
     # Replace the line below with your code.
-    raise NotImplementedError
+    all_pred = []
+    
+    #check context sequence is sufficient for the n gram 
+    len_seq = len(sequence)
+    for model in models:
+        for token in model: 
+            n_value = len(token)
+            break 
+        if len_seq >= n_value:
+            all_pred.append(query_n_gram(model, tuple(sequence[-n_value:])))
+
+    #blend thme together 
+    blend_pred= blend_predictions(all_pred)
+    preds = random.choices(list(blend_pred.keys()), weights=[blend_pred[i] for i in blend_pred], k =1 )[0]
+    return preds
+        
+
+
+    
+
+    
+
+
+
 
 def log_likelihood_ramp_up(sequence, models):
     # Task 5.1
@@ -138,17 +162,17 @@ if __name__ == '__main__':
     
 
     # Task 1.2 test code
- 
+    
     model = build_bigram(sequence[:20])
     print(model)
-  
+    
 
     # Task 1.3 test code
    
     model = build_n_gram(sequence[:20], 5)
     print(model)
-   
     
+
     # Task 2 test code
     
     print(query_n_gram(model, tuple(sequence[:4])))
@@ -161,7 +185,7 @@ if __name__ == '__main__':
     
 
     # Task 4 test code
-    '''
+
     models = [build_n_gram(sequence, i) for i in range(10, 0, -1)]
     head = []
     for _ in range(100):
@@ -169,7 +193,7 @@ if __name__ == '__main__':
         print(tail, end=' ')
         head.append(tail)
     print()
-    '''
+
 
     # Task 5.1 test code
     '''
