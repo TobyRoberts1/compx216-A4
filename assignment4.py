@@ -143,9 +143,38 @@ def log_likelihood_ramp_up(sequence, models):
     # Task 5.1
     # Return a log likelihood value of the sequence based on the models.
     # Replace the line below with your code.
-    raise NotImplementedError
+    log_likelihood = 0 
+    for i in range(len(sequence)):
+        token = sequence[i]
+        #for unigrams the first loop through should have no context 
+        if i == 0:
+            context = ()
+        else: 
+            #gets correct length of n gram for other tokens
+            context = tuple(sequence[max(0, i - (len(models)- 1)):i])
+        model_index = min(len(context), len(models) - 1)
+        
+        model = models[model_index]
+        #print(model)
+        #query model with the correct context 
+        pred = query_n_gram(model, context)
+
+        #return -math.inf if doesn't exist 
+        if pred is None or token not in pred:
+            return -math.inf
+
+        prob = pred[token] / sum(pred.values())
+        print(prob)
+
+        log_likelihood = math.log(prob)
+  
+    return log_likelihood
+
+
+
 
 def log_likelihood_blended(sequence, models):
+
     # Task 5.2
     # Return a log likelihood value of the sequence based on the models.
     # Replace the line below with your code.
@@ -196,9 +225,9 @@ if __name__ == '__main__':
 
 
     # Task 5.1 test code
-    '''
+    
     print(log_likelihood_ramp_up(sequence[:20], models))
-    '''
+    
 
     # Task 5.2 test code
     '''
